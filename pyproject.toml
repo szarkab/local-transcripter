@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-transcripter"
+version = "0.4.1"
+description = "Offline Hungarian and English audio transcription for Apple Silicon Macs"
+requires-python = ">=3.13,<3.14"
+license = "MIT"
+dependencies = ["mlx-whisper==0.4.3", "sherpa-onnx==1.13.8", "onnxruntime==1.31.0", "certifi==2026.7.22"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.local-transcripter]
+build-number = "11"
+minimum-macos = "27.0"
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+follow_imports = "silent"
+cache_dir = ".cache/mypy"
