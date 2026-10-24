@@ -1,6 +1,7 @@
 """Build a self-contained Apple Silicon app; models are prepared on first use."""
 import argparse
 from importlib.metadata import distributions
+import os
 import platform
 import sys
 from pathlib import Path
@@ -14,6 +15,24 @@ ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / 'build'
 APP = BUILD / 'Local Transcripter.app'
 PROJECT = tomllib.loads((ROOT / 'pyproject.toml').read_text())
+MACHO_MAGICS = {b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xca\xfe\xba\xbe', b'\xbe\xba\xfe\xca'}
+
+
+def sign_application(app: Path, identity: str) -> None:
+    """Sign native code first, then seal the outer app bundle."""
+    arguments = ['codesign', '--force', '--sign', identity]
+    if identity != '-':
+        arguments.extend(['--options', 'runtime', '--timestamp'])
+    native_code = []
+    for path in app.rglob('*'):
+        if path.is_symlink() or not path.is_file():
+            continue
+        with path.open('rb') as source:
+            if source.read(4) in MACHO_MAGICS:
+                native_code.append(path)
+    for path in sorted(native_code, key=lambda item: len(item.parts), reverse=True):
+        subprocess.run([*arguments, str(path)], check=True)
+    subprocess.run([*arguments, str(app)], check=True)
 
 
 def write_notices(resources: Path) -> None:
@@ -53,6 +72,8 @@ def write_notices(resources: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--reuse-runtime', action='store_true', help='Reuse a previously frozen runtime for UI-only edits')
+    parser.add_argument('--signing-identity', default=os.environ.get('LOCAL_TRANSCRIPTER_CODESIGN_IDENTITY', '-'),
+                        help='Developer ID Application identity; defaults to ad-hoc signing.')
     args = parser.parse_args()
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise SystemExit('Build on an Apple Silicon Mac.')
@@ -93,7 +114,7 @@ def main() -> None:
                       'NSHighResolutionCapable': True}, target)
     subprocess.run(['swift', '-module-cache-path', str(cache), str(ROOT / 'scripts/draw_icon.swift'),
                     str(resources / 'AppIcon.icns'), str(resources / 'BrandMark.svg')], check=True)
-    subprocess.run(['codesign', '--force', '--deep', '--sign', '-', str(APP)], check=True)
+    sign_application(APP, args.signing_identity)
     print(APP)
 
 

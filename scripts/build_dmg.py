@@ -1,4 +1,5 @@
 """Create a verified local-preview DMG, public source ZIP and SHA-256 manifest."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -14,7 +15,17 @@ from verify_bundle import audit
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def signing_kind(app: Path) -> str:
+    details = subprocess.check_output(['codesign', '-dv', '--verbose=2', str(app)],
+                                      stderr=subprocess.STDOUT, text=True)
+    return 'ad-hoc' if 'Signature=adhoc' in details else 'developer-id'
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--release-candidate', action='store_true',
+                        help='Require a clean Git tree and a Developer ID-signed app.')
+    args = parser.parse_args()
     project = tomllib.loads((ROOT / 'pyproject.toml').read_text())
     version = project['project']['version']
     app = ROOT / 'build/Local Transcripter.app'
@@ -23,6 +34,16 @@ def main() -> None:
             raise SystemExit('App version is stale; rebuild first.')
     result = audit(app)
     subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+    signing = signing_kind(app)
+    revision = None
+    dirty = None
+    if (ROOT / '.git').exists():
+        revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        dirty = bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip())
+    if args.release_candidate and dirty:
+        raise SystemExit('A release candidate must be built from a clean Git tree.')
+    if args.release_candidate and signing == 'ad-hoc':
+        raise SystemExit('A release candidate requires a Developer ID-signed app.')
     files = public_files(ROOT)
     staging = ROOT / 'build/dmg-root'
     if staging.exists():
@@ -45,14 +66,10 @@ def main() -> None:
         for path in files:
             archive.write(path, str(Path(f'local-transcripter-{version}') / path.relative_to(ROOT)))
     manifest = destination / 'release.json'
-    revision = None
-    dirty = None
-    if (ROOT / '.git').exists():
-        revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-        dirty = bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip())
     manifest.write_text(json.dumps({
         'version': version, 'architecture': 'arm64', 'minimum_macos': result['minimum_macos'],
-        'channel': 'local-preview', 'signing': 'ad-hoc', 'notarized': False,
+        'channel': 'release-candidate' if args.release_candidate else 'local-preview',
+        'signing': signing, 'notarized': False,
         'source_git_revision': revision, 'source_git_dirty': dirty,
         'audit': result,
     }, indent=2))

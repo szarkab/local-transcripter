@@ -15,14 +15,14 @@ A kipróbált gép Apple M5, 32 GB memória, macOS 27.0.1. Más hardveren a feld
 
 ## Letöltés és telepítés
 
-A 0.4.1-es előzetes [DMG-telepítője a GitHub-kiadásban](https://github.com/szarkab/local-transcripter/releases/tag/v0.4.1) tölthető le. A **Code → Download ZIP** a forráskódot tartalmazza. A kész apphoz Python, Homebrew és fordítás nem szükséges.
+A Local Transcripter DMG-telepítője a [GitHub kiadásoknál](https://github.com/szarkab/local-transcripter/releases/latest) tölthető le.
 
 1. Nyisd meg a `Local-Transcripter-0.4.1-apple-silicon-local.dmg` fájlt.
 2. Húzd a **Local Transcripter** alkalmazást az **Applications** mappába.
 3. Indítsd el a bemásolt appot, majd válaszd le a DMG-t.
 4. Első használatkor a felületen töltsd le a kb. 3,2 GB-os alapmodellt. Az opcionális beszélőmodellek további kb. 108 MB-ot foglalnak.
 
-A jelenlegi 0.4.1 kiadás helyi, ad-hoc aláírású előzetes, Apple-notarizáció nélkül. Letöltés után a macOS fejlesztői figyelmeztetést adhat. Ha a forrást megbízhatónak ítéled, a sikertelen indítás után a **Rendszerbeállítások → Adatvédelem és biztonság → Megnyitás mindenképpen** lehetőség használható, ha a rendszered engedélyezi. A rendszer védelmét nem kell globálisan kikapcsolni. [Apple útmutató](https://support.apple.com/en-us/102445)
+A jelenlegi 0.4.1-es DMG még nincs Apple-notarizálva, ezért a macOS első indításkor figyelmeztetést adhat. A sikertelen indítás után a **Rendszerbeállítások → Adatvédelem és biztonság → Megnyitás mindenképpen** lehetőséggel nyitható meg. [Apple útmutató](https://support.apple.com/en-us/102445)
 
 ## Használat
 
@@ -32,7 +32,7 @@ A jelenlegi 0.4.1 kiadás helyi, ad-hoc aláírású előzetes, Apple-notarizác
 4. Kövesd az aktuális feldolgozási lépést és felismeréskor a feldolgozott hangidőt. A **Megszakítás** leállítja a munkát; részleges leirat nem menthető teljesként.
 5. Válassz **TXT** vagy **Markdown** formátumot, majd mentsd a leiratot.
 
-Az új ablak külön mutatja a beállításokat, a hangfelvételt és a feldolgozás állapotát. A fejlécben és az appikonon a felhasználó által adott hangbuborékjel látható. A felület a macOS saját megjelenését és áttetsző anyagait használja.
+Az új ablak külön mutatja a beállításokat, a hangfelvételt és a feldolgozás állapotát. A fejlécben és az appikonon hangbuborékjel látható. A felület a macOS saját megjelenését használja.
 
 Az export UTF-8 szöveg, időbélyegekkel. A felismert szöveget nem fogalmazza át. A beszélők névtelen címkéket kapnak. Az elakadt felismerés legfeljebb egyszer indul újra; szöveges ismétlésgyanú nem indít újabb teljes átírást és nem töröl elhangzott ismétlést. A választó nem ígér megbízható mondatonkénti nyelvváltást vegyes nyelvű hangon.
 
@@ -43,28 +43,6 @@ A modell-előkészítés nyilvános Hugging Face és Sherpa-ONNX letöltést vé
 A `~/Library/Application Support/Helyi leirat/` mappában találhatók a modellek és a futások. A Local Transcripter a korábbi néven létrehozott mappát tovább használja, így a névváltás nem igényel új modellletöltést. A `runs/` mappa hangmásolatokat, leiratokat és helyi naplókat őriz; tartalma személyes adat lehet és nem törlődik automatikusan. Bezárt app mellett a már nem szükséges futások törölhetők, miután a kívánt exportokat elmentetted. A `models/` törlése új modellletöltést igényel. A frissítés megőrzi ezeket az adatokat.
 
 A felismerés hibázhat: félrehallás, kihagyás, kitalált szöveg és pontatlan időbélyeg is előfordulhat. A beszélőcímkék becsült hangcsoportok. Az ellenőrizendő szó és egyszerre beszélés jelölése kísérleti segítség; hiánya nem bizonyít hibátlan leiratot. Megbízható automatikus érthetetlenség-felismerés nincs. Fontos tartalomnál hallgasd vissza a hangot.
-
-## Fordítás forrásból
-
-Apple Silicon Mac, macOS 27+, Python 3.13, `uv`, az Xcode parancssori eszközei és `make` szükségesek.
-
-```sh
-uv venv --python 3.13 .venv
-uv pip sync --python .venv/bin/python requirements-build.lock.txt
-uv pip install --python .venv/bin/python --no-deps --no-build-isolation -e .
-.venv/bin/python scripts/build_app.py
-.venv/bin/python scripts/build_dmg.py
-```
-
-Az app a `build/Local Transcripter.app`, a kiadási fájlok a `dist/` mappában készülnek el. A build saját, rögzített verziójú FFmpeg/FFprobe eszközöket fordít, és becsomagolja a helyi futtatókörnyezetet. A több GB-os modellsúlyokat nem építi be az alkalmazásba.
-
-A forráscsomag az appot, a buildeszközöket, a függőséglistákat és a licenceket tartalmazza. Hangfájlok, leiratok és tesztanyagok nem részei.
-
-## Kiadás GitHubon
-
-A forrást a repozitóriumba töltsd fel. A DMG-t a **Releases** részben, a hozzá tartozó verziótaghez csatold a `SHA256SUMS` és `release.json` fájlokkal együtt. A saját forrás-ZIP is mellékelhető; a jelenlegi ellenőrzőösszeg-jegyzék erre is hivatkozik. A nem notarizált előzeteshez a **Pre-release** jelölés javasolt.
-
-A `dist/` mappában a fájlok épsége a `shasum -a 256 -c SHA256SUMS` paranccsal ellenőrizhető. A fenti letöltési hivatkozás a közzétett 0.4.1-es előzetes kiadásra mutat.
 
 ## Licenc
 
